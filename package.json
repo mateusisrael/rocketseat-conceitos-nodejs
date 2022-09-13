@@ -5,7 +5,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "nodemon",
-    "test": "jest"
+    "test": "jest --watch ./__tests__/todos"
   },
   "dependencies": {
     "cors": "^2.8.5",
