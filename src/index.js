@@ -9,16 +9,16 @@ app.use(cors());
 app.use(express.json());
 
 const users = [];
-// const todos = [];
 
 function checksExistsUserAccount(request, response, next) {
   const username = request.headers.username
-  const userExists = users.find(item => username === item.username)
+  const user = users.find(item => username === item.username)
 
-  if(userExists === undefined) {
+  if(user === undefined) {
     response.status(400).json({ error: "Usuário não encontrado!" })
   }
 
+  request.user = user
   next()
 }
 
@@ -59,9 +59,8 @@ app.get('/todos', checksExistsUserAccount, (request, response) => {
 
 app.post('/todos', checksExistsUserAccount, (request, response) => {
   try {
-    console.log('Aqui')
     const data = request.body
-    // const username = request.headers.username
+    const username = request.headers.username
 
     const newTodo = {
       id: uuidv4(),
@@ -71,17 +70,8 @@ app.post('/todos', checksExistsUserAccount, (request, response) => {
       created_at: new Date()
     }
 
-    // pegar o usuário a partir do nome
-    // dar push do newTodo no array de todos dele
-    const currentUser = users.find(item => username = item.username)
-    // currentUser.todos.push(newTodo)
-    Object.assign(currentUser, {
-      ...currentUser,
-      todos: [
-        ...currentUser.todos,
-        newTodo
-      ]
-    })
+    const currentUser = users.find(item => username === item.username)
+    currentUser.todos.push(newTodo)
 
     response.status(201).send(newTodo)
   } catch (error) {
@@ -90,15 +80,58 @@ app.post('/todos', checksExistsUserAccount, (request, response) => {
 });
 
 app.put('/todos/:id', checksExistsUserAccount, (request, response) => {
-  // Complete aqui
+  try {
+    const { title, deadline } = request.body
+    const todoId = request.params.id
+    
+    // encontrar o todo na lista de todos
+    const todosList = request.user.todos
+    const todo = todosList.find(item => item.id == todoId)
+    if(!todo) response.status(404).json({ error: "Todo não encontrado" })
+
+    // atualizar todo
+    todo.title = title ? title : todo.title,
+    todo.deadline = deadline ? new Date(deadline) : new Date()
+    
+    response.status(200).json(todo)
+  } catch (error) {
+    response.status(500).send()
+  }
 });
 
 app.patch('/todos/:id/done', checksExistsUserAccount, (request, response) => {
-  // Complete aqui
+  try {
+    const todoId = request.params.id
+    const user = request.user
+
+    // Encontrar todo
+    const todosList = user.todos
+    const todo = todosList.find(item => item.id === todoId)
+    if(!todo) response.status(404).json({error: "Todo não encontrado"})
+
+    todo.done = true
+
+    response.status(200).json(todo)
+  } catch (error) {
+    response.status(500).send()
+  }
 });
 
 app.delete('/todos/:id', checksExistsUserAccount, (request, response) => {
-  // Complete aqui
+    try {
+    const todoId = request.params.id
+    const user = request.user
+
+    // Encontrar todo
+    const todo = user.todos.find(item => item.id === todoId)
+    if(!todo) response.status(404).json({error: "Todo não encontrado"})
+
+    user.todos = user.todos.filter(i => i.id !== todoId)
+
+    response.status(204).send()
+  } catch (error) {
+    response.status(500).send()
+  }
 });
 
 module.exports = app;
